@@ -14,41 +14,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 ####################
 ####
-####    var List
-####
-####################
-
-#
-# url='https://nar.netkeiba.com/'
-#
-# tomorrow='date of tomorrow'
-# URL_tomorrow='tomorrow's URL'
-#
-# name_track='track name'
-# url_track='track URL'
-#
-# num='race number'
-# url_num='race number URL'
-#
-# TARGET_distance='this race information ex)ダ1400'
-# horse='horse name at this race'
-# order='horse order at this race'
-# URL_horse='horse URL at this race'
-#
-# track='result track'
-# distance='result distance'
-# condition='result condition'
-# date='result date'
-# result='result time'
-#
-# len_LIST_horse='for view progress'
-# len_LIST_track='for view progress'
-# len_LIST_num='for view progress'
-# progress='for view progress'
-#
-
-####################
-####
 ####    Setting
 ####
 ####################
@@ -85,6 +50,7 @@ else:
 ####
 ####################
 
+# manner for web server
 def waitForLoad(driver):
     i = 0
     elem = driver.find_elements(By.TAG_NAME, "html")
@@ -99,12 +65,16 @@ def waitForLoad(driver):
             i += 1
             time.sleep(.5)
 
+# for view progress
 def logForProgress(race_day, name_track, num, len_LIST_track, len_LIST_num, len_LIST_horse):
     path = str(race_day[4:])+'_'+str(name_track)+'_'+str(num)+'.csv'
     progressHorse = ' horse:' + str(LIST_horse.index(horse)) + '/' + str(len_LIST_horse)
     progressNum = ' num:' + str(LIST_num.index(num)) + '/' + str(len_LIST_num)
-    progressTrack = ' track:' + str(LIST_track.index(track)) + '/' + str(len_LIST_track)
-    progressList = '|| [Progress]' + progressHorse + progressNum + progressTrack
+    if name_track in LIST_track:
+        progressTrack = ' track:' + str(LIST_track.index(name_track)) + '/' + str(len_LIST_track)
+    else:
+        progressTrack = ' track:?/' + str(len_LIST_track)
+    progressList = '    Progress:' + progressHorse + progressNum + progressTrack
     print('[Creating]', path, progressList)
 
 
@@ -133,9 +103,7 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), serv
 ###
 ####################
 
-##### jump to/target/date
-
-
+##### jump to date page
 driver.get(url + '?kaisai_date=' + race_day + '&rf=race_list')
 waitForLoad(driver)
 
@@ -144,8 +112,7 @@ soup = BeautifulSoup(html, 'lxml')
 
 
 
-##### select the track
-
+##### get list of tracks
 TRACKs = soup.select(".RaceList_ProvinceSelect > li > a")
 LISTs_track = [i.getText() for i in TRACKs]
 URLs_track = [i.get("href") for i in TRACKs]
@@ -153,6 +120,7 @@ len_LIST_track = len(LISTs_track)
 
 for (name_track, url_track) in zip(LISTs_track, URLs_track):
 
+    # jump to track page
     driver.get(url + url_track)
     waitForLoad(driver)
 
@@ -161,17 +129,16 @@ for (name_track, url_track) in zip(LISTs_track, URLs_track):
 
 
 
-    ##### select the race
-
+    ##### get list of races
     RACEs = soup_track.select_one('[style*="display : block"]')
     LIST_num = [i.getText(strip=True) for i in RACEs.select('li.RaceList_DataItem > a > div.Race_Num > span')]
     LIST_urls_num = [i.get("href") for i in RACEs.select('li.RaceList_DataItem > a')]
     urls_num = [i for i in LIST_urls_num if not i.startswith('../race/movie')]
-    
-    
+
+    # for view progress
     len_LIST_num = len(LIST_num)
 
-
+    ##### jump to race page
     for (num,url_num) in zip(LIST_num, urls_num):
         driver.get(url + url_num[2:])
         waitForLoad(driver)
@@ -181,43 +148,30 @@ for (name_track, url_track) in zip(LISTs_track, URLs_track):
 
 
         ##### get the race info
-
         TARGET_distance = soup_horse.select_one("div.RaceData01 > span").getText(strip=True)[:-1]
 
 
-            
-        ##### create new file.csv
-        if os.path.isdir('log/'+race_day+'/'+name_track) == False:
-            os.makedirs('log/'+race_day+'/'+name_track)
 
-        with open('log/'+race_day+'/'+name_track+'/'+race_day+'_'+name_track+'_'+num+'.csv', 'w', newline='', encoding='shift-jis') as f:
-            write = csv.writer(f)
-            write.writerow(['track', 'num', 'distance', 'condition', 'horse', 'result_day', 'result_time'])
-
-
-
-        ##### select the horse
-
+        ##### get list of horses
         LISTs_horse = soup_horse.select("span.HorseName > a")
         LIST_horse = [i.getText(strip=True) for i in LISTs_horse]
         urls_horse = [i.get("href") for i in LISTs_horse]
         len_LIST_horse = len(LIST_horse)
 
 
-        ##### get the horse
-
+        ##### jump to horse page
         for (horse, url_horse) in zip(LIST_horse, urls_horse):
             driver.get(url_horse)
             waitForLoad(driver)
             html_result = driver.page_source
             soup_horse = BeautifulSoup(html_result, 'lxml')
 
+            # get horse order
             order = LIST_horse.index(horse) + 1
 
 
 
-            ##### get the results
-
+            ##### get list of results
             LISTs = soup_horse.select('table.db_h_race_results > tbody > tr > td')
             
             LISTs_track = LISTs[1::28]
@@ -234,12 +188,26 @@ for (name_track, url_track) in zip(LISTs_track, URLs_track):
 
 
 
-            ##### output results to file.csv
+            ##### log progress 
+            logForProgress(race_day, name_track, num, len_LIST_track, len_LIST_num, len_LIST_horse)
 
+
+            ##### create new directory
+            file_dir = 'log/'+str(race_day)+'/'+str(name_track)+'/'+str(num)+'/'
+            csv_file = file_dir + str(order)+'_'+str(horse)+'.csv'
+
+            if os.path.isdir(file_dir) == False:
+                os.makedirs(file_dir)
+            
+            # create new file.csv
+            with open(csv_file, 'w', newline='', encoding='shift-jis') as f:
+                    write = csv.writer(f)
+                    write.writerow([])
+
+            # add results to file.csv
             for (track, distance, condition, result_day, result) in zip(LIST_track, LIST_distance, LIST_condition, LIST_race_day, LIST_time):
-                csv_file = 'log/'+str(race_day)+'/'+str(track)+'/'+str(race_day)+'_'+str(name_track)+'_'+str(num)+'.csv'
                 if track == name_track and distance == TARGET_distance and condition == TARGET_condition and len(str(result)) != 0:
-                    logForProgress(race_day, name_track, num, len_LIST_track, len_LIST_num, len_LIST_horse)
+
                     with open(csv_file, 'a', newline='', encoding='shift-jis') as f:
                         write = csv.writer(f)
-                        write.writerow([name_track, num, distance, condition, order, horse, result_day, result])
+                        write.writerow([result_day, result])
