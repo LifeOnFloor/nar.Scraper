@@ -32,15 +32,17 @@ else:
     TARGET_condition = '良'
 
 # select race_date
-TARGET_day = input('[Default:tomorrow, 1key:today]')
+TARGET_day = input('[Default:tomorrow, 1key:today, 8key:input date]')
 today = datetime.today()
 tomorrow = today +timedelta(days=1)
 if len(TARGET_day) == 0:
     race_day = datetime.strftime(tomorrow, '%Y%m%d')
 elif len(TARGET_day) == 1:
     race_day = datetime.strftime(today, '%Y%m%d')
-else:
+elif len(TARGET_day) == 8:
     race_day = TARGET_day
+else:
+    print("wrong input")
 
 
 
