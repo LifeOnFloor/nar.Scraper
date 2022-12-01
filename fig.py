@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
-import csv
 from datetime import datetime, timedelta
 import pandas
 import os
