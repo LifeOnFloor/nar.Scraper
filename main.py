@@ -67,11 +67,11 @@ def waitForLoad(driver):
 
 # for view progress
 def logForProgress(race_day, name_track, num, len_LIST_track, len_LIST_num, len_LIST_horse):
-    path = str(race_day[4:])+'_'+str(name_track)+'_'+str(num)+'.csv'
-    progressHorse = ' horse:' + str(LIST_horse.index(horse)) + '/' + str(len_LIST_horse)
-    progressNum = ' num:' + str(LIST_num.index(num)) + '/' + str(len_LIST_num)
-    if name_track in LIST_track:
-        progressTrack = ' track:' + str(LIST_track.index(name_track)) + '/' + str(len_LIST_track)
+    path = str(race_day[4:])+'_'+str(name_track)+'_'+str(num)
+    progressHorse = ' horse:' + str(LIST_horse.index(horse)+1) + '/' + str(len_LIST_horse)
+    progressNum = ' num:' + str(LIST_num.index(num)+1) + '/' + str(len_LIST_num)
+    if name_track in LIST_track and LIST_track.index(name_track) <= len_LIST_track:
+        progressTrack = ' track:' + str(LIST_track.index(name_track)+1) + '/' + str(len_LIST_track)
     else:
         progressTrack = ' track:?/' + str(len_LIST_track)
     progressList = '    Progress:' + progressHorse + progressNum + progressTrack
@@ -200,14 +200,14 @@ for (name_track, url_track) in zip(LISTs_track, URLs_track):
                 os.makedirs(file_dir)
             
             # create new file.csv
-            with open(csv_file, 'w', newline='', encoding='shift-jis') as f:
+            with open(csv_file, 'w', newline='', encoding='utf-8') as f:
                     write = csv.writer(f)
-                    write.writerow([])
+                    write.writerow(['date', 'time'])
 
             # add results to file.csv
             for (track, distance, condition, result_day, result) in zip(LIST_track, LIST_distance, LIST_condition, LIST_race_day, LIST_time):
                 if track == name_track and distance == TARGET_distance and condition == TARGET_condition and len(str(result)) != 0:
 
-                    with open(csv_file, 'a', newline='', encoding='shift-jis') as f:
+                    with open(csv_file, 'a', newline='', encoding='utf-8') as f:
                         write = csv.writer(f)
                         write.writerow([result_day, result])
