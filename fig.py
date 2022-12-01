@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
+import matplotlib.dates as mdates
 from datetime import datetime, timedelta
 import pandas
 import os
@@ -63,12 +64,17 @@ if os.path.isdir(dir_listBox):
                 plt.xlabel("date")
                 plt.ylabel("time")
 
+                labels = ax.get_xticklabels()
+                plt.setp(labels, rotation=45)
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+                ax.yaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+                plt.grid()
+
                 for order in os.listdir(dir_listBox+track+'/'+num):
                     print(order)
                     if order.endswith('.csv'):
                         csv_file = dir_listBox+'/'+track+'/'+num+'/'+order
                         ax.plot(plot_x(csv_file), plot_y(csv_file), label=order[:-4])
-                        plt.grid()
                         plt.legend(prop={'family':'MS Gothic'})
 
                 # create new file.
