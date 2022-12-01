@@ -32,17 +32,19 @@ def plot_y(csv_file):
 ##### input race day
 def input_race_day():
     while True:
-        race_day = input("yyyymmdd")
-        if len(str(race_day)) == 0:
+        race_day = input("[Default:tomorrow, 1key:today, 8key:input date]")
+        if len(str(race_day)) == 1:
             today = datetime.today()
             str_today = datetime.strftime(today, '%Y%m%d')
             return str_today
-        elif len(str(race_day)) == 1:
+        elif len(str(race_day)) == 0:
             tomorrow = datetime.today()+timedelta(days=1)
             str_tomorrow = datetime.strftime(tomorrow, '%Y%m%d')
             return str_tomorrow
+        elif len(str(race_day)) == 8:
+            return race_day
         else:
-            print("Press a key or nothing")
+            print("wrong input")
             break
 
 race_day = str(input_race_day())
@@ -81,3 +83,5 @@ if os.path.isdir(dir_listBox):
                 save_dir = 'log/'+str(race_day)+'/'+str(track)+'/'+num+'.png'
                 plt.savefig(save_dir)
                 plt.close()
+
+# x軸の間隔を固定する
