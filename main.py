@@ -2,6 +2,7 @@ import lxml
 import time
 import csv
 import os
+import pandas
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from selenium import webdriver
@@ -20,27 +21,14 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 url = 'https://nar.netkeiba.com/'
 
-# select race condition [Default:良,2:稍,3:重,4:不]
-TARGET_condition = input('[Default:良, 2:稍, 3:重, 4:不]')
-if TARGET_condition == 2:
-    TARGET_condition = '稍'
-elif TARGET_condition == 3:
-    TARGET_condition = '重'
-elif TARGET_condition == 4:
-    TARGET_condition = '不'
-else:
-    TARGET_condition = '良'
-
 # select race_date
-TARGET_day = input('[Default:tomorrow, 1key:today, 8key:input date]')
+TARGET_day = input('[Default:tomorrow, 1key:today]')
 today = datetime.today()
 tomorrow = today +timedelta(days=1)
 if len(TARGET_day) == 0:
     race_day = datetime.strftime(tomorrow, '%Y%m%d')
 elif len(TARGET_day) == 1:
     race_day = datetime.strftime(today, '%Y%m%d')
-elif len(TARGET_day) == 8:
-    race_day = TARGET_day
 else:
     print("wrong input")
 
@@ -72,14 +60,17 @@ def logForProgress(race_day, name_track, num, len_LIST_track, len_LIST_num, len_
     path = str(race_day[4:])+'_'+str(name_track)+'_'+str(num)
     progressHorse = ' horse:' + str(LIST_horse.index(horse)+1) + '/' + str(len_LIST_horse)
     progressNum = ' num:' + str(LIST_num.index(num)+1) + '/' + str(len_LIST_num)
-    if name_track in LIST_track and LIST_track.index(name_track) <= len_LIST_track:
-        progressTrack = ' track:' + str(LIST_track.index(name_track)+1) + '/' + str(len_LIST_track)
-    else:
-        progressTrack = ' track:?/' + str(len_LIST_track)
+    progressTrack = ' track:' + str(name_track) + '/' + str(len_LIST_track)
     progressList = '    Progress:' + progressHorse + progressNum + progressTrack
     print('[Creating]', path, progressList)
 
-
+'''# for view complete time
+current_time = datetime.now()
+def progress(race_day, current_time):
+    days = race_day-alpha_day
+    complete_hours = (datetime.now()-current_time).seconds*days.days/3600
+    print('remaining download time '+str(complete_hours)+'hours ')
+    return datetime.now()'''
 
 ####################
 ###
@@ -121,6 +112,8 @@ URLs_track = [i.get("href") for i in TRACKs]
 len_LIST_track = len(LISTs_track)
 
 for (name_track, url_track) in zip(LISTs_track, URLs_track):
+    #if not name_track == '園田':
+    #    continue
 
     # jump to track page
     driver.get(url + url_track)
@@ -142,6 +135,9 @@ for (name_track, url_track) in zip(LISTs_track, URLs_track):
 
     ##### jump to race page
     for (num,url_num) in zip(LIST_num, urls_num):
+        #if int(num[:-1]) < 12:
+        #    continue
+
         driver.get(url + url_num[2:])
         waitForLoad(driver)
         html_horse = driver.page_source
@@ -165,30 +161,25 @@ for (name_track, url_track) in zip(LISTs_track, URLs_track):
         for (horse, url_horse) in zip(LIST_horse, urls_horse):
             driver.get(url_horse)
             waitForLoad(driver)
-            html_result = driver.page_source
-            soup_horse = BeautifulSoup(html_result, 'lxml')
 
             # get horse order
             order = LIST_horse.index(horse) + 1
 
 
-
             ##### get list of results
-            LISTs = soup_horse.select('table.db_h_race_results > tbody > tr > td')
-            
-            LISTs_track = LISTs[1::28]
-            LISTs_race_day = LISTs[0::28]
-            LISTs_distance = LISTs[14::28]
-            LISTs_condition = LISTs[15::28]
-            LISTs_time = LISTs[17::28]
-
-            LIST_track = [i.getText(strip=True) for i in LISTs_track]
-            LIST_race_day = [i.getText(strip=True) for i in LISTs_race_day]
-            LIST_condition = [i.getText(strip=True) for i in LISTs_condition]
-            LIST_distance = [i.getText(strip=True) for i in LISTs_distance]
-            LIST_time = [i.getText(strip=True) for i in LISTs_time]
-
-
+            url_table = url_horse+'/html/body/div[1]/div[2]/div[class="db_main_race"]/div[calss="db_main_data"]/table[class="db_h_race_results"]'
+            LISTs = pandas.read_html(url_table,encoding='euc-jp')[3]
+            if len(LISTs.columns) < 3:
+                i = 3
+                while True:
+                    LISTs = pandas.read_html(url_table,encoding='euc-jp')[i]
+                    if len(LISTs.columns) < 3:
+                        break
+                    i += 1
+            LISTs = LISTs.loc[:,['日付','開催','天 気','R','頭 数','馬 番','オ ッ ズ','人 気','着 順','騎手','斤 量','距離','馬 場','タイム','着差','通過','ペース','上り','馬体重','賞金']]
+            LISTs.dropna(inplace=True)
+            LISTs = LISTs[LISTs['開催']==name_track]
+            LISTs = LISTs[LISTs['距離']==TARGET_distance]
 
             ##### log progress 
             logForProgress(race_day, name_track, num, len_LIST_track, len_LIST_num, len_LIST_horse)
@@ -196,20 +187,10 @@ for (name_track, url_track) in zip(LISTs_track, URLs_track):
 
             ##### create new directory
             file_dir = 'log/'+str(race_day)+'/'+str(name_track)+'/'+str(num)+'/'
-            csv_file = file_dir + str(order)+'_'+str(horse)+'.csv'
+            csv_file = file_dir + str(order)+'_'+str(horse)
 
             if os.path.isdir(file_dir) == False:
                 os.makedirs(file_dir)
             
-            # create new file.csv
-            with open(csv_file, 'w', newline='', encoding='utf-8') as f:
-                    write = csv.writer(f)
-                    write.writerow(['date', 'time'])
-
             # add results to file.csv
-            for (track, distance, condition, result_day, result) in zip(LIST_track, LIST_distance, LIST_condition, LIST_race_day, LIST_time):
-                if track == name_track and distance == TARGET_distance and condition == TARGET_condition and len(str(result)) != 0:
-
-                    with open(csv_file, 'a', newline='', encoding='utf-8') as f:
-                        write = csv.writer(f)
-                        write.writerow([result_day, result])
+            LISTs.to_csv(csv_file+'.csv',mode='w',encoding='shift-jis',index=None)
