@@ -17,15 +17,17 @@ nar.netkeiba.coｍをスクレイピングします。
 ## 注意
 過去にそのレースと同じ条件で走っていないとデータを取得できません。***グラフに出力される出走馬の頭数が該当レースと一致しない***ことがあります。  
 
-## Command
+## コマンド（Windowsコマンドプロンプトの場合）
 <details>
 <summary>
 
-```python -m main```
+```
+<input>
+python -m main
+```
 
 </summary>
 
-main.pyを起動します。
 ```
 <output>
 [Default:tomorrow, 1key:today]
@@ -41,10 +43,12 @@ main.pyを起動します。
 <details>
 <summary>
 
-```python -m fig```
+```
+<input>
+python -m fig
+```
 </summary>
-
-fig.pyを起動します。※main.pyの後に実行してください。  
+  
 ```
 <output>
 [Default:tomorrow, 1key:today]
